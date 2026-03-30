@@ -1,175 +1,981 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>ICD Patient Entry</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ICD Patient Entry Dashboard</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    body { font-family: Arial; padding: 20px; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { padding: 6px; text-align: center; }
-    input, select { width: 100%; }
-    .error { border: 2px solid red; }
+    :root {
+      --bg: #f5f6fa;
+      --panel: #ffffff;
+      --panel-2: #fbfbfd;
+      --border: #e7e9f0;
+      --text: #161c2d;
+      --muted: #6b7280;
+      --soft: #f1f3f9;
+      --accent: #111827;
+      --green: #22a06b;
+      --green-bg: #eaf8f1;
+      --red: #d84d71;
+      --red-bg: #fdecef;
+      --blue: #4a7fd1;
+      --shadow: 0 10px 30px rgba(17, 24, 39, 0.05);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 250px 1fr;
+    }
+
+    .sidebar {
+      background: #fafbfe;
+      border-right: 1px solid var(--border);
+      padding: 22px 16px;
+    }
+
+    .brand {
+      height: 52px;
+      border-radius: 16px;
+      background: linear-gradient(90deg, #eef2ff, #f6f7fb);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      margin-bottom: 20px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      color: #2b3344;
+      margin-bottom: 6px;
+      font-size: 15px;
+    }
+
+    .nav-item.active {
+      background: #eef1f7;
+      font-weight: 700;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #9aa4b2;
+    }
+
+    .nav-item.active .dot {
+      background: var(--blue);
+    }
+
+    .content {
+      padding: 22px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .page-title {
+      font-size: 42px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin: 0;
+    }
+
+    .searchish {
+      min-width: 280px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      color: var(--muted);
+      box-shadow: var(--shadow);
+    }
+
+    .filters {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .chip {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card-head {
+      padding: 18px 18px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .card-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      padding: 0 18px 18px;
+    }
+
+    .kpi {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .kpi-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+    }
+
+    .kpi-value {
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px 12px;
+    }
+
+    .status-ready { background: var(--green-bg); color: var(--green); }
+    .status-warning { background: #f3f4f6; color: #4b5563; }
+
+    .controls {
+      padding: 0 18px 18px;
+      display: grid;
+      grid-template-columns: 1.35fr repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .control-box {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .control-box label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+    }
+
+    .control-box input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 12px;
+      font: inherit;
+      background: white;
+    }
+
+    .button-row {
+      padding: 0 18px 18px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      appearance: none;
+      border: none;
+      border-radius: 14px;
+      padding: 11px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .btn-dark { background: #111827; color: white; }
+    .btn-light { background: #eef1f7; color: #111827; }
+    .btn-blue { background: #4a7fd1; color: white; }
+
+    .mini-table {
+      padding: 0 18px 18px;
+    }
+
+    .mini-table table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .mini-table th,
+    .mini-table td {
+      text-align: left;
+      padding: 11px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .mini-table th { color: var(--muted); font-weight: 600; }
+
+    .sheet-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .sheet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sheet-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin: 0;
+    }
+
+    .sheet-subtitle {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .sheet-wrap {
+      overflow: auto;
+    }
+
+    table.sheet {
+      border-collapse: collapse;
+      min-width: 1900px;
+      width: 100%;
+      background: white;
+    }
+
+    table.sheet td,
+    table.sheet th {
+      border: 1px solid var(--border);
+      padding: 10px 10px;
+      font-size: 14px;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .title-row td {
+      font-weight: 800;
+      background: #fcfcfe;
+    }
+
+    .green-head td {
+      background: #eef1f7;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .sheet input,
+    .sheet select {
+      width: 100%;
+      border: 1px solid transparent;
+      background: transparent;
+      outline: none;
+      font: inherit;
+      color: inherit;
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+
+    .sheet input:focus,
+    .sheet select:focus {
+      background: #fbfcff;
+      border-color: #cfd7e6;
+    }
+
+    input.error, select.error {
+      background: var(--red-bg) !important;
+      border-color: var(--red) !important;
+    }
+
+    .left { text-align: left; }
+    .center { text-align: center; }
+
+    .small-col { width: 64px; }
+    .name-col { width: 220px; }
+    .initial-col { width: 100px; }
+    .type-col, .sex-col, .outcome-col, .icd-col { width: 125px; }
+    .weight-col { width: 110px; }
+    .date-col { width: 150px; }
+    .diag-col { width: 240px; }
+
+    .hint {
+      padding: 16px 18px 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1200px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .grid { grid-template-columns: 1fr; }
+      .controls, .kpis { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 760px) {
+      .content { padding: 14px; }
+      .page-title { font-size: 30px; }
+      .controls, .kpis { grid-template-columns: 1fr; }
+      .topbar { flex-direction: column; align-items: stretch; }
+    }
   </style>
 </head>
 <body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">ICD Dashboard</div>
+      <div class="nav-item active"><span class="dot"></span>Overview</div>
+      <div class="nav-item"><span class="dot"></span>Patient Entry</div>
+      <div class="nav-item"><span class="dot"></span>ICD Suggestions</div>
+      <div class="nav-item"><span class="dot"></span>Exports</div>
+      <div class="nav-item"><span class="dot"></span>Validation</div>
+      <div class="nav-item"><span class="dot"></span>Settings</div>
+    </aside>
 
-<h2>The Doctors' Hospital VII-7 Chapter Negros Island</h2>
+    <main class="content">
+      <div class="topbar">
+        <h1 class="page-title">Overview</h1>
+        <div class="searchish">ICD patient entry and export workspace</div>
+      </div>
 
-<label>Month/Year:</label>
-<input type="month" id="monthYear" required>
+      <div class="filters">
+        <div class="chip">Live encoding</div>
+        <div class="chip">WHO ICD-10 2019</div>
+        <div class="chip">Singapore API</div>
+      </div>
 
-<br><br>
+      <section class="card" style="margin-bottom:16px;">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">Patient Entry Summary</h2>
+            <div class="card-sub">Same workflow as before — only the visual design changed.</div>
+          </div>
+          <span id="apiStatus" class="status-pill status-warning">Manual ICD mode</span>
+        </div>
 
-<label>No. of Discharges:</label>
-<input type="number" id="discharges" readonly>
+        <div class="kpis">
+          <div class="kpi">
+            <div class="kpi-label">Active Records</div>
+            <div class="kpi-value" id="topDischargeCount">0</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Hospital</div>
+            <div class="kpi-value" style="font-size:18px;">The Doctors' Hospital</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Region / Chapter</div>
+            <div class="kpi-value" style="font-size:18px;">VII-7 · Negros Island</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Dataset</div>
+            <div class="kpi-value" style="font-size:18px;">WHO ICD-10</div>
+          </div>
+        </div>
 
-<br><br>
+        <div class="controls">
+          <div class="control-box">
+            <label for="apiUrl">ICD API URL</label>
+            <input type="text" id="apiUrl" placeholder="https://ai-icd-repo.onrender.com/predict" />
+          </div>
+          <div class="control-box">
+            <label for="monthYear">Month / Year</label>
+            <input type="month" id="monthYear" />
+          </div>
+          <div class="control-box">
+            <label for="discharges">No. of Discharges</label>
+            <input type="number" id="discharges" readonly />
+          </div>
+          <div class="control-box">
+            <label>Status</label>
+            <div style="font-size:16px;font-weight:700;padding-top:10px;">Ready for encoding</div>
+          </div>
+        </div>
 
-<button onclick="addRow()">Add Patient</button>
-<button onclick="downloadExcel()">Download Excel</button>
+        <div class="button-row">
+          <button type="button" class="btn-dark" onclick="addRow()">Add Patient</button>
+          <button type="button" class="btn-blue" onclick="downloadExcel()">Download Excel</button>
+          <button type="button" class="btn-light" onclick="focusLastRow()">Go to Last Row</button>
+        </div>
+      </section>
 
-<br><br>
+      <div class="grid">
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h3 class="card-title">How it works</h3>
+              <div class="card-sub">Fast entry with editable ICD suggestions</div>
+            </div>
+          </div>
+          <div class="mini-table">
+            <table>
+              <thead>
+                <tr><th>Step</th><th>Action</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>1</td><td>Type full name and details</td></tr>
+                <tr><td>2</td><td>Enter diagnosis text</td></tr>
+                <tr><td>3</td><td>ICD auto-fills from your API</td></tr>
+                <tr><td>4</td><td>Adjust manually if needed</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
-<table border="1" id="patientTable">
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>Full Name</th>
-      <th>Initial</th>
-      <th>Type</th>
-      <th>Sex</th>
-      <th>Weight</th>
-      <th>DOB</th>
-      <th>Admitted</th>
-      <th>Discharged</th>
-      <th>Outcome</th>
-      <th>Primary Diagnosis</th>
-      <th>Primary ICD</th>
-      <th>Secondary Diagnosis</th>
-      <th>Secondary ICD</th>
-      <th>Tertiary Diagnosis</th>
-      <th>Tertiary ICD</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h3 class="card-title">Validation</h3>
+              <div class="card-sub">Required fields turn red if incomplete</div>
+            </div>
+          </div>
+          <div class="mini-table">
+            <table>
+              <thead>
+                <tr><th>Field</th><th>Rule</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Type / Sex / Outcome</td><td>Must be selected</td></tr>
+                <tr><td>Full Name</td><td>Last name, First name</td></tr>
+                <tr><td>Dates</td><td>Chronology checked</td></tr>
+                <tr><td>ICD</td><td>Can be auto-filled or typed</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
-<script>
-let count = 0;
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h3 class="card-title">Export Format</h3>
+              <div class="card-sub">Same export logic as before</div>
+            </div>
+          </div>
+          <div class="mini-table">
+            <table>
+              <thead>
+                <tr><th>Included</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Patient Initial</td><td>Included</td></tr>
+                <tr><td>Full Name</td><td>Excluded</td></tr>
+                <tr><td>Primary / Secondary / Tertiary ICD</td><td>Included</td></tr>
+                <tr><td>Hospital header</td><td>Included</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
 
-// ⚠️ REPLACE THIS WITH YOUR RENDER URL LATER
-const API_URL = "https://tdh-ai-icd-repo.onrender.com/predict";
+      <section class="sheet-card">
+        <div class="sheet-header">
+          <div>
+            <h2 class="sheet-title">Patient Entry Sheet</h2>
+            <div class="sheet-subtitle">Dashboard-style layout, same patient entry behavior and Excel output.</div>
+          </div>
+        </div>
 
-function getInitial(fullName) {
-  let parts = fullName.split(',');
-  if (parts.length < 2) return '';
+        <div class="sheet-wrap">
+          <table class="sheet" id="patientTable">
+            <colgroup>
+              <col class="small-col">
+              <col class="name-col">
+              <col class="initial-col">
+              <col class="type-col">
+              <col class="sex-col">
+              <col class="weight-col">
+              <col class="date-col">
+              <col class="date-col">
+              <col class="date-col">
+              <col class="outcome-col">
+              <col class="diag-col">
+              <col class="icd-col">
+              <col class="diag-col">
+              <col class="icd-col">
+              <col class="diag-col">
+              <col class="icd-col">
+            </colgroup>
+            <tbody>
+              <tr class="title-row">
+                <td></td>
+                <td class="left">The Doctors' Hospital</td>
+                <td class="center">VII-7</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td class="center" colspan="2">Chapter</td>
+                <td class="center">Negros Island</td>
+                <td></td>
+                <td class="center">Month/Yr</td>
+                <td class="center"><span id="monthMirror">—</span></td>
+                <td></td>
+                <td class="center" colspan="2">No. of Discharges</td>
+                <td class="center"><span id="dischargeMirror">0</span></td>
+              </tr>
+              <tr class="green-head">
+                <td>Number</td>
+                <td>Full Name</td>
+                <td>Patient Initial</td>
+                <td>Type of Patient (OLD/NEW)</td>
+                <td>Sex (M/F)</td>
+                <td>Weight (KG)</td>
+                <td>Date of Birth (mm/dd/yyyy)</td>
+                <td>Date Admitted (mm/dd/yyyy)</td>
+                <td>Date Discharged (mm/dd/yyyy)</td>
+                <td>Outcome (Discharged/DIED)</td>
+                <td>Primary Diagnosis</td>
+                <td>ICD No.</td>
+                <td>Secondary Diagnosis</td>
+                <td>ICD No.</td>
+                <td>Tertiary Diagnosis</td>
+                <td>ICD No.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-  let lastNames = parts[0].trim().split(' ');
-  let firstNames = parts[1].trim().split(' ');
+        <div class="hint">
+          Patient Initial format stays the same. Example: <strong>de los reyes, lucho → DL</strong>.
+          ICD suggestions still come from your Render backend, and users can still manually type ICD codes.
+        </div>
+      </section>
+    </main>
+  </div>
 
-  let initials = '';
-  lastNames.forEach(n => initials += n[0] || '');
-  firstNames.forEach(n => initials += n[0] || '');
+  <script>
+    let count = 0;
+    const DEFAULT_API_URL = "http://127.0.0.1:8000/predict";
+    const API_STORAGE_KEY = "icd_api_url";
+    const particles = ["de", "del", "de la", "de las", "de los", "dela", "da", "dos", "das", "di", "van", "von", "bin", "ibn", "la", "las", "los"];
 
-  return initials.toUpperCase();
-}
+    function runSelfChecks() {
+      console.assert(getInitial("de los reyes, lucho") === "DL", "Expected DL for 'de los reyes, lucho'");
+      console.assert(getInitial("galvan, jaxziv") === "GJ", "Expected GJ for 'galvan, jaxziv'");
+      console.assert(formatDateForExcel("2026-03-30") === "03/30/2026", "Date formatting failed");
+    }
 
-function addRow() {
-  count++;
-  const table = document.getElementById("patientTable").getElementsByTagName('tbody')[0];
-  const row = table.insertRow();
+    function formatDateForDisplay(value) {
+      if (!value) return "";
+      const [y, m, d] = value.split("-");
+      return `${m}/${d}/${y}`;
+    }
 
-  row.innerHTML = `
-    <td>${count}</td>
-    <td><input type="text" required onchange="updateInitial(this)"></td>
-    <td class="initial"></td>
-    <td><select><option>OLD</option><option>NEW</option></select></td>
-    <td><select><option>M</option><option>F</option></select></td>
-    <td><input type="number" required></td>
-    <td><input type="date" required></td>
-    <td><input type="date" required></td>
-    <td><input type="date" required></td>
-    <td><select><option>Discharged</option><option>DIED</option></select></td>
-    <td><input type="text" onblur="fetchICD(this, 'primary')"></td>
-    <td><input type="text" class="primary-icd" readonly></td>
-    <td><input type="text" onblur="fetchICD(this, 'secondary')"></td>
-    <td><input type="text" class="secondary-icd" readonly></td>
-    <td><input type="text" onblur="fetchICD(this, 'tertiary')"></td>
-    <td><input type="text" class="tertiary-icd" readonly></td>
-  `;
+    function formatDateForExcel(value) {
+      return formatDateForDisplay(value);
+    }
 
-  document.getElementById("discharges").value = count;
-}
+    function cleanWord(word) {
+      return word.replace(/[^a-zA-Z]/g, "").toLowerCase();
+    }
 
-function updateInitial(input) {
-  const row = input.parentElement.parentElement;
-  row.querySelector('.initial').innerText = getInitial(input.value);
-}
+    function getInitial(fullName) {
+      const parts = fullName.split(",");
+      if (parts.length < 2) return "";
 
-async function fetchICD(input, type) {
-  const diagnosis = input.value;
-  if (!diagnosis) return;
+      const lastNameRaw = parts[0].trim();
+      const firstNameRaw = parts[1].trim();
+      if (!lastNameRaw || !firstNameRaw) return "";
 
-  try {
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: diagnosis })
-    });
+      const lastWords = lastNameRaw.split(/\s+/).map(cleanWord).filter(Boolean);
+      const firstWords = firstNameRaw.split(/\s+/).map(cleanWord).filter(Boolean);
+      if (!lastWords.length || !firstWords.length) return "";
 
-    const data = await response.json();
-    const icd = data.suggestions?.[0]?.code || "N/A";
+      let lastInitial = lastWords[0][0];
+      if (lastWords.length > 1) {
+        const nonParticles = lastWords.filter(w => !particles.includes(w));
+        if (nonParticles.length >= 2) {
+          lastInitial = nonParticles[0][0] + nonParticles[1][0];
+        } else if (nonParticles.length === 1) {
+          lastInitial = nonParticles[0][0];
+        }
+      }
 
-    const row = input.parentElement.parentElement;
-    row.querySelector(`.${type}-icd`).value = icd;
-  } catch (err) {
-    console.error(err);
-  }
-}
+      const firstInitial = firstWords[0][0];
+      return (lastInitial + firstInitial).substring(0, 2).toUpperCase();
+    }
 
-function downloadExcel() {
-  const rows = document.querySelectorAll("#patientTable tbody tr");
-  let data = [];
+    function getApiUrl() {
+      return (document.getElementById("apiUrl").value || "").trim();
+    }
 
-  for (let row of rows) {
-    let inputs = row.querySelectorAll("input[required]");
-    for (let input of inputs) {
-      if (!input.value) {
-        input.classList.add("error");
-        alert("Please fill all required fields");
-        return;
+    function setApiStatus(ready, message) {
+      const el = document.getElementById("apiStatus");
+      el.textContent = message;
+      el.className = `status-pill ${ready ? "status-ready" : "status-warning"}`;
+    }
+
+    function saveApiUrl() {
+      const apiUrl = getApiUrl();
+      localStorage.setItem(API_STORAGE_KEY, apiUrl);
+      setApiStatus(Boolean(apiUrl), apiUrl ? "ICD API ready" : "Manual ICD mode");
+    }
+
+    function initializeApiUrl() {
+      const saved = localStorage.getItem(API_STORAGE_KEY);
+      const input = document.getElementById("apiUrl");
+      input.value = saved || DEFAULT_API_URL;
+      input.addEventListener("input", saveApiUrl);
+      input.addEventListener("blur", saveApiUrl);
+      setApiStatus(Boolean(input.value.trim()), input.value.trim() ? "ICD API ready" : "Manual ICD mode");
+    }
+
+    function createSelect(options, placeholder) {
+      const placeholderOption = `<option value="" selected disabled>${placeholder}</option>`;
+      const optionsHtml = options.map(o => `<option value="${o}">${o}</option>`).join("");
+      return `<select class="required-select" onchange="this.classList.remove('error'); updateDischarges(); maybeAddNextRow(this.closest('tr'))">${placeholderOption}${optionsHtml}</select>`;
+    }
+
+    function updateTopDischargeCount(value) {
+      document.getElementById("topDischargeCount").textContent = value;
+      document.getElementById("dischargeMirror").textContent = value;
+    }
+
+    function updateMonthMirror() {
+      const monthValue = document.getElementById("monthYear").value;
+      const monthText = monthValue
+        ? new Date(monthValue + "-01").toLocaleString("en-US", { month: "short", year: "2-digit" })
+        : "—";
+      document.getElementById("monthMirror").textContent = monthText;
+    }
+
+    function updateDischarges() {
+      const rows = document.querySelectorAll(".data-row");
+      let dischargeCount = 0;
+      rows.forEach(row => {
+        if (rowHasMeaningfulData(row)) dischargeCount += 1;
+      });
+      document.getElementById("discharges").value = dischargeCount;
+      updateTopDischargeCount(dischargeCount);
+    }
+
+    function updateInitial(input) {
+      const row = input.closest("tr");
+      row.querySelector(".initial-cell").textContent = getInitial(input.value);
+      input.classList.remove("error");
+      updateDischarges();
+      maybeAddNextRow(row);
+    }
+
+    function rowHasMeaningfulData(row) {
+      return Array.from(row.querySelectorAll("input, select")).some(el => {
+        if (el.id === "apiUrl" || el.id === "monthYear" || el.id === "discharges") return false;
+        if (el.tagName === "SELECT") return !!el.value;
+        return typeof el.value === "string" ? el.value.trim().length > 0 : !!el.value;
+      });
+    }
+
+    function addRow() {
+      count += 1;
+      const tbody = document.querySelector("#patientTable tbody");
+      const row = document.createElement("tr");
+      row.className = "data-row";
+
+      row.innerHTML = `
+        <td class="center row-no">${count}</td>
+        <td><input type="text" class="full-name required-field" placeholder="Last name, First name" oninput="updateInitial(this)" /></td>
+        <td class="center initial-cell"></td>
+        <td>${createSelect(["OLD", "NEW"], "Select")}</td>
+        <td>${createSelect(["M", "F"], "Select")}</td>
+        <td><input type="number" class="required-field" min="0" step="0.1" oninput="this.classList.remove('error'); updateDischarges(); maybeAddNextRow(this.closest('tr'))" /></td>
+        <td><input type="date" class="required-field dob" onchange="this.classList.remove('error'); updateDischarges(); maybeAddNextRow(this.closest('tr'))" /></td>
+        <td><input type="date" class="required-field admitted" onchange="this.classList.remove('error'); updateDischarges(); maybeAddNextRow(this.closest('tr'))" /></td>
+        <td><input type="date" class="required-field discharged" onchange="this.classList.remove('error'); updateDischarges(); maybeAddNextRow(this.closest('tr'))" /></td>
+        <td>${createSelect(["Discharged", "DIED"], "Select")}</td>
+        <td><input type="text" placeholder="Type diagnosis" oninput="debouncedFetchICD(this, 'primary'); maybeAddNextRow(this.closest('tr'))" /></td>
+        <td><input type="text" class="primary-icd" placeholder="Suggested or type ICD" oninput="this.dataset.autoFilled='false'" /></td>
+        <td><input type="text" placeholder="Type diagnosis" oninput="debouncedFetchICD(this, 'secondary'); maybeAddNextRow(this.closest('tr'))" /></td>
+        <td><input type="text" class="secondary-icd" placeholder="Suggested or type ICD" oninput="this.dataset.autoFilled='false'" /></td>
+        <td><input type="text" placeholder="Type diagnosis" oninput="debouncedFetchICD(this, 'tertiary'); maybeAddNextRow(this.closest('tr'))" /></td>
+        <td><input type="text" class="tertiary-icd" placeholder="Suggested or type ICD" oninput="this.dataset.autoFilled='false'" /></td>
+      `;
+
+      tbody.appendChild(row);
+      updateDischarges();
+    }
+
+    function maybeAddNextRow(row) {
+      const rows = Array.from(document.querySelectorAll(".data-row"));
+      const lastRow = rows[rows.length - 1];
+      if (row === lastRow && rowHasMeaningfulData(row) && rows.length < 500) {
+        addRow();
       }
     }
 
-    let cells = row.querySelectorAll("td");
+    const icdDebounceTimers = new WeakMap();
 
-    data.push({
-      "No": cells[0].innerText,
-      "Patient Initial": cells[2].innerText,
-      "Type": cells[3].querySelector("select").value,
-      "Sex": cells[4].querySelector("select").value,
-      "Weight": cells[5].querySelector("input").value,
-      "DOB": cells[6].querySelector("input").value,
-      "Admitted": cells[7].querySelector("input").value,
-      "Discharged": cells[8].querySelector("input").value,
-      "Outcome": cells[9].querySelector("select").value,
-      "Primary Diagnosis": cells[10].querySelector("input").value,
-      "ICD No.": cells[11].querySelector("input").value,
-      "Secondary Diagnosis": cells[12].querySelector("input").value,
-      "ICD No.": cells[13].querySelector("input").value,
-      "Tertiary Diagnosis": cells[14].querySelector("input").value,
-      "ICD No.": cells[15].querySelector("input").value
-     
-    });
-  }
+    function debouncedFetchICD(input, type) {
+      const prior = icdDebounceTimers.get(input);
+      if (prior) clearTimeout(prior);
+      const timer = setTimeout(() => fetchICD(input, type), 450);
+      icdDebounceTimers.set(input, timer);
+    }
 
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Patients");
+    async function fetchICD(input, type) {
+      const diagnosis = input.value.trim();
+      if (!diagnosis) return;
 
-  XLSX.writeFile(workbook, "ICD_Patients.xlsx");
-}
-</script>
+      const apiUrl = getApiUrl();
+      const row = input.closest("tr");
+      const icdInput = row.querySelector(`.${type}-icd`);
 
+      if (!apiUrl) {
+        icdInput.title = "No ICD API configured. Type ICD manually.";
+        setApiStatus(false, "Manual ICD mode");
+        return;
+      }
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: diagnosis })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        const suggestion = data && Array.isArray(data.suggestions) ? data.suggestions[0] : null;
+
+        if (!suggestion) {
+          icdInput.title = "No ICD suggestion found. Type ICD manually.";
+          setApiStatus(false, "No suggestion returned");
+          return;
+        }
+
+        if (!icdInput.value || icdInput.dataset.autoFilled === "true") {
+          icdInput.value = suggestion.code || "";
+          icdInput.dataset.autoFilled = "true";
+        }
+
+        icdInput.title = suggestion.description || "";
+        setApiStatus(true, "ICD suggestion ready");
+      } catch (error) {
+        icdInput.title = "ICD API unavailable. Type ICD manually.";
+        setApiStatus(false, "Manual ICD mode");
+        console.warn("ICD suggestion unavailable. Manual ICD entry allowed.", error);
+      }
+    }
+
+    function clearErrors(row) {
+      row.querySelectorAll("input, select").forEach(el => el.classList.remove("error"));
+    }
+
+    function validateRow(row) {
+      clearErrors(row);
+      let valid = true;
+
+      const required = row.querySelectorAll(".required-field");
+      required.forEach(field => {
+        if (!field.value) {
+          field.classList.add("error");
+          valid = false;
+        }
+      });
+
+      const requiredSelects = row.querySelectorAll(".required-select");
+      requiredSelects.forEach(select => {
+        if (!select.value) {
+          select.classList.add("error");
+          valid = false;
+        }
+      });
+
+      const fullName = row.querySelector(".full-name");
+      if (fullName && fullName.value && !fullName.value.includes(",")) {
+        fullName.classList.add("error");
+        valid = false;
+      }
+
+      const dob = row.querySelector(".dob").value;
+      const admitted = row.querySelector(".admitted").value;
+      const discharged = row.querySelector(".discharged").value;
+
+      if (dob && admitted && new Date(dob) > new Date(admitted)) {
+        row.querySelector(".dob").classList.add("error");
+        row.querySelector(".admitted").classList.add("error");
+        valid = false;
+      }
+
+      if (admitted && discharged && new Date(admitted) > new Date(discharged)) {
+        row.querySelector(".admitted").classList.add("error");
+        row.querySelector(".discharged").classList.add("error");
+        valid = false;
+      }
+
+      return valid;
+    }
+
+    function buildExportData() {
+      const rows = document.querySelectorAll(".data-row");
+      const data = [];
+
+      for (const row of rows) {
+        if (!rowHasMeaningfulData(row)) continue;
+
+        if (!validateRow(row)) {
+          alert("Please complete all required fields correctly. Full Name must be in 'Last name, First name' format.");
+          return null;
+        }
+
+        const cells = row.querySelectorAll("td");
+        data.push({
+          "Number": cells[0].textContent.trim(),
+          "Patient Initial": cells[2].textContent.trim(),
+          "Type of Patient": cells[3].querySelector("select").value,
+          "Sex": cells[4].querySelector("select").value,
+          "Weight (KG)": cells[5].querySelector("input").value,
+          "Date of Birth": formatDateForExcel(cells[6].querySelector("input").value),
+          "Date Admitted": formatDateForExcel(cells[7].querySelector("input").value),
+          "Date Discharged": formatDateForExcel(cells[8].querySelector("input").value),
+          "Outcome": cells[9].querySelector("select").value,
+          "Primary Diagnosis": cells[10].querySelector("input").value,
+          "ICD No.": cells[11].querySelector("input").value,
+          "Secondary Diagnosis": cells[12].querySelector("input").value,
+          "ICD No. ": cells[13].querySelector("input").value,
+          "Tertiary Diagnosis": cells[14].querySelector("input").value,
+          "ICD No.  ": cells[15].querySelector("input").value
+        });
+      }
+
+      return data;
+    }
+
+    function downloadExcel() {
+      const exportRows = buildExportData();
+      if (!exportRows) return;
+
+      const monthValue = document.getElementById("monthYear").value;
+      const monthText = monthValue
+        ? new Date(monthValue + "-01").toLocaleString("en-US", { month: "short", year: "2-digit" })
+        : "";
+      const dischargeCount = document.getElementById("discharges").value || 0;
+
+      const headerRows = [
+        ["", "The Doctors' Hospital", "VII-7", "", "", "", "Chapter", "Negros Island", "", "Month/Yr", monthText, "", "", "No. of Discharges", dischargeCount],
+        [],
+        ["Number", "Patient Initial", "Type of Patient (OLD/NEW)", "Sex (M/F)", "Weight (KG)", "Date of Birth (mm/dd/yyyy)", "Date Admitted (mm/dd/yyyy)", "Date Discharged (mm/dd/yyyy)", "Outcome (Discharged/DIED)", "Primary Diagnosis", "ICD No.", "Secondary Diagnosis", "ICD No.", "Tertiary Diagnosis", "ICD No."]
+      ];
+
+      const bodyRows = exportRows.map(r => [
+        r["Number"],
+        r["Patient Initial"],
+        r["Type of Patient"],
+        r["Sex"],
+        r["Weight (KG)"],
+        r["Date of Birth"],
+        r["Date Admitted"],
+        r["Date Discharged"],
+        r["Outcome"],
+        r["Primary Diagnosis"],
+        r["ICD No."],
+        r["Secondary Diagnosis"],
+        r["ICD No. "],
+        r["Tertiary Diagnosis"],
+        r["ICD No.  "]
+      ]);
+
+      const ws = XLSX.utils.aoa_to_sheet([...headerRows, ...bodyRows]);
+      ws["!cols"] = [
+        { wch: 8 }, { wch: 12 }, { wch: 20 }, { wch: 10 }, { wch: 12 },
+        { wch: 16 }, { wch: 16 }, { wch: 17 }, { wch: 22 }, { wch: 28 },
+        { wch: 12 }, { wch: 28 }, { wch: 12 }, { wch: 28 }, { wch: 12 }
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Patients");
+      XLSX.writeFile(wb, "ICD_Patients.xlsx");
+    }
+
+    function focusLastRow() {
+      const rows = document.querySelectorAll(".data-row");
+      const last = rows[rows.length - 1];
+      if (!last) return;
+      const firstInput = last.querySelector("input, select");
+      if (firstInput) {
+        firstInput.focus();
+        last.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+
+    document.getElementById("monthYear").addEventListener("input", updateMonthMirror);
+    initializeApiUrl();
+    updateMonthMirror();
+    addRow();
+    runSelfChecks();
+  </script>
 </body>
 </html>
