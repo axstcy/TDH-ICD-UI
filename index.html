@@ -144,17 +144,22 @@ function downloadExcel() {
     let cells = row.querySelectorAll("td");
 
     data.push({
-      "Initial": cells[2].innerText,
-      "Type": cells[3].querySelector('select').value,
-      "Sex": cells[4].querySelector('select').value,
-      "Weight": cells[5].querySelector('input').value,
-      "DOB": cells[6].querySelector('input').value,
-      "Admitted": cells[7].querySelector('input').value,
-      "Discharged": cells[8].querySelector('input').value,
-      "Outcome": cells[9].querySelector('select').value,
-      "Primary ICD": cells[11].querySelector('input').value,
-      "Secondary ICD": cells[13].querySelector('input').value,
-      "Tertiary ICD": cells[15].querySelector('input').value
+      "No": cells[0].innerText,
+      "Patient Initial": cells[2].innerText,
+      "Type": cells[3].querySelector("select").value,
+      "Sex": cells[4].querySelector("select").value,
+      "Weight": cells[5].querySelector("input").value,
+      "DOB": cells[6].querySelector("input").value,
+      "Admitted": cells[7].querySelector("input").value,
+      "Discharged": cells[8].querySelector("input").value,
+      "Outcome": cells[9].querySelector("select").value,
+      "Primary Diagnosis": cells[10].querySelector("input").value,
+      "ICD No.": cells[11].querySelector("input").value,
+      "Secondary Diagnosis": cells[12].querySelector("input").value,
+      "ICD No.": cells[13].querySelector("input").value,
+      "Tertiary Diagnosis": cells[14].querySelector("input").value,
+      "ICD No.": cells[15].querySelector("input").value
+     
     });
   }
 
