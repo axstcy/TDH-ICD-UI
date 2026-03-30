@@ -5,41 +5,55 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ICD Patient Entry</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap');
-
     :root {
-      --bg: #f7f5fa;
-      --panel: rgba(255,255,255,0.9);
-      --panel-2: #fcfbfd;
-      --border: #e9e4ee;
-      --text: #1d1a22;
-      --muted: #7a7286;
-      --green: #238a63;
+      --bg: #f4f6fb;
+      --panel: #ffffff;
+      --panel-2: #fbfcff;
+      --border: #e6eaf2;
+      --text: #172033;
+      --muted: #6f7b91;
+      --soft: #eef3fb;
+      --green: #1f9d68;
       --green-bg: #eaf8f1;
       --red: #d84d71;
       --red-bg: #fdecef;
-      --blue: #6f7dff;
-      --shadow: 0 18px 42px rgba(43, 32, 58, 0.08);
-      --radius: 24px;
+      --blue: #4a7fd1;
+      --shadow: 0 10px 30px rgba(20, 32, 60, 0.06);
+      --shadow-strong: 0 18px 50px rgba(20, 32, 60, 0.10);
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      font-family: Inter, Arial, Helvetica, sans-serif;
+      font-family: "Inter", Arial, Helvetica, sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(155, 129, 255, 0.10), transparent 22%),
-        radial-gradient(circle at top right, rgba(255, 194, 222, 0.16), transparent 24%),
-        linear-gradient(180deg, #faf9fc 0%, #f5f4f8 100%);
+        radial-gradient(circle at top left, #f9fbff 0%, #f4f6fb 45%, #f1f4fa 100%);
+    }
+
+    a {
+      color: #2f63c9;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .app {
+      min-height: 100vh;
     }
 
     .content {
-      max-width: 1500px;
-      margin: 0 auto;
       padding: 26px;
+      max-width: 1820px;
+      margin: 0 auto;
     }
 
     .topbar {
@@ -51,22 +65,22 @@
     }
 
     .page-title {
-      font-family: "Playfair Display", serif;
-      font-size: 46px;
-      font-weight: 700;
-      letter-spacing: -0.03em;
+      font-size: 42px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
       margin: 0;
+      color: #121a2b;
     }
 
     .searchish {
       min-width: 280px;
-      background: var(--panel);
+      background: rgba(255,255,255,0.75);
+      backdrop-filter: blur(8px);
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 13px 16px;
+      padding: 12px 14px;
       color: var(--muted);
       box-shadow: var(--shadow);
-      backdrop-filter: blur(8px);
     }
 
     .filters {
@@ -77,28 +91,29 @@
     }
 
     .chip {
-      background: var(--panel);
+      background: rgba(255,255,255,0.9);
       border: 1px solid var(--border);
       border-radius: 999px;
       padding: 10px 14px;
       font-size: 14px;
       box-shadow: var(--shadow);
+      color: #324055;
+      font-weight: 500;
     }
 
     .grid {
       display: grid;
-      grid-template-columns: 1.15fr 1fr;
+      grid-template-columns: 1.25fr 1fr;
       gap: 16px;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
     }
 
     .card {
       background: var(--panel);
       border: 1px solid var(--border);
-      border-radius: var(--radius);
+      border-radius: 22px;
       box-shadow: var(--shadow);
       overflow: hidden;
-      backdrop-filter: blur(10px);
     }
 
     .card-head {
@@ -110,9 +125,10 @@
     }
 
     .card-title {
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 700;
       margin: 0;
+      letter-spacing: -0.02em;
     }
 
     .card-sub {
@@ -123,29 +139,30 @@
 
     .kpis {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 14px;
       padding: 0 20px 20px;
     }
 
     .kpi {
-      background: var(--panel-2);
+      background: linear-gradient(180deg, #fcfdff 0%, #f8faff 100%);
       border: 1px solid var(--border);
       border-radius: 18px;
-      padding: 15px;
+      padding: 16px;
     }
 
     .kpi-label {
       font-size: 12px;
       color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.06em;
       margin-bottom: 8px;
     }
 
     .kpi-value {
       font-size: 24px;
       font-weight: 800;
+      letter-spacing: -0.03em;
     }
 
     .status-pill {
@@ -158,21 +175,24 @@
       padding: 8px 12px;
     }
 
-    .status-ready { background: var(--green-bg); color: var(--green); }
-    .status-warning { background: #f3f4f6; color: #4b5563; }
+    .status-ready {
+      background: var(--green-bg);
+      color: var(--green);
+    }
 
     .controls {
       padding: 0 20px 20px;
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: 1fr;
       gap: 14px;
+      max-width: 320px;
     }
 
     .control-box {
-      background: var(--panel-2);
+      background: linear-gradient(180deg, #fcfdff 0%, #f8faff 100%);
       border: 1px solid var(--border);
       border-radius: 18px;
-      padding: 15px;
+      padding: 16px;
     }
 
     .control-box label {
@@ -180,15 +200,18 @@
       font-size: 12px;
       color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.06em;
       margin-bottom: 8px;
     }
 
-    .control-value {
-      font-size: 17px;
-      font-weight: 700;
-      min-height: 24px;
-      padding-top: 6px;
+    .control-box input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 13px;
+      font: inherit;
+      background: white;
+      color: var(--text);
     }
 
     .button-row {
@@ -201,17 +224,23 @@
     button {
       appearance: none;
       border: none;
-      border-radius: 16px;
-      padding: 12px 18px;
+      border-radius: 14px;
+      padding: 11px 16px;
       cursor: pointer;
       font-size: 14px;
       font-weight: 700;
-      box-shadow: var(--shadow);
+      font-family: inherit;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
     }
 
-    .btn-dark { background: #1d1a22; color: white; }
-    .btn-light { background: #ece8f2; color: #1d1a22; }
-    .btn-blue { background: linear-gradient(135deg, #6f7dff, #8a73ff); color: white; }
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(20, 32, 60, 0.10);
+    }
+
+    .btn-dark { background: #121a2b; color: white; }
+    .btn-light { background: #eef3fb; color: #1b2740; }
+    .btn-blue { background: #4a7fd1; color: white; }
 
     .mini-table {
       padding: 0 20px 20px;
@@ -226,18 +255,24 @@
     .mini-table th,
     .mini-table td {
       text-align: left;
-      padding: 11px 8px;
+      padding: 12px 8px;
       border-bottom: 1px solid var(--border);
+      vertical-align: top;
     }
 
-    .mini-table th { color: var(--muted); font-weight: 600; }
+    .mini-table th {
+      color: var(--muted);
+      font-weight: 600;
+      width: 120px;
+    }
 
     .sheet-card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
+      background: linear-gradient(180deg, #ffffff 0%, #fcfdff 100%);
+      border: 1px solid #dfe6f2;
+      border-radius: 26px;
+      box-shadow: var(--shadow-strong);
       overflow: hidden;
+      margin-top: 8px;
     }
 
     .sheet-header {
@@ -245,27 +280,33 @@
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      padding: 20px;
+      padding: 22px 22px 18px;
       border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
     }
 
     .sheet-title {
-      font-size: 18px;
+      font-size: 22px;
       font-weight: 800;
       margin: 0;
+      letter-spacing: -0.03em;
+      color: #111827;
     }
 
     .sheet-subtitle {
       color: var(--muted);
       font-size: 13px;
-      margin-top: 4px;
+      margin-top: 6px;
     }
 
-    .sheet-wrap { overflow: auto; }
+    .sheet-wrap {
+      overflow: auto;
+      background: #fff;
+    }
 
     table.sheet {
       border-collapse: collapse;
-      min-width: 1720px;
+      min-width: 2300px;
       width: 100%;
       background: white;
     }
@@ -280,9 +321,10 @@
     }
 
     .green-head td {
-      background: #f3eff8;
+      background: #edf3fc;
       font-weight: 700;
       text-align: center;
+      color: #23314d;
     }
 
     .sheet input,
@@ -295,12 +337,14 @@
       color: inherit;
       border-radius: 10px;
       padding: 8px 10px;
+      font-family: inherit;
+      min-width: 100%;
     }
 
     .sheet input:focus,
     .sheet select:focus {
       background: #fbfcff;
-      border-color: #d9d1e5;
+      border-color: #cfd7e6;
     }
 
     input.error, select.error {
@@ -308,205 +352,180 @@
       border-color: var(--red) !important;
     }
 
+    .left { text-align: left; }
     .center { text-align: center; }
 
-    .small-col { width: 64px; }
-    .name-col { width: 220px; }
-    .initial-col { width: 100px; }
-    .type-col, .sex-col, .outcome-col, .icd-col { width: 125px; }
-    .weight-col { width: 110px; }
-    .date-col { width: 150px; }
-    .diag-col { width: 240px; }
+    .small-col { width: 80px; }
+    .name-col { width: 280px; }
+    .initial-col { width: 130px; }
+    .type-col { width: 180px; }
+    .sex-col { width: 120px; }
+    .weight-col { width: 130px; }
+    .date-col { width: 185px; }
+    .outcome-col { width: 190px; }
+    .diag-col { width: 320px; }
+    .icd-col { width: 150px; }
 
     .hint {
-      padding: 16px 20px 20px;
+      padding: 16px 22px 22px;
       color: var(--muted);
       font-size: 13px;
-      line-height: 1.5;
+      line-height: 1.6;
+      background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
     }
 
     @media (max-width: 1200px) {
       .grid { grid-template-columns: 1fr; }
-      .controls, .kpis { grid-template-columns: 1fr 1fr; }
+      .kpis { grid-template-columns: 1fr 1fr; }
     }
 
     @media (max-width: 760px) {
       .content { padding: 14px; }
-      .page-title { font-size: 34px; }
-      .controls, .kpis { grid-template-columns: 1fr; }
+      .page-title { font-size: 30px; }
+      .kpis { grid-template-columns: 1fr; }
       .topbar { flex-direction: column; align-items: stretch; }
+      .searchish { min-width: 100%; }
     }
   </style>
 </head>
 <body>
-  <main class="content">
-    <div class="topbar">
-      <h1 class="page-title">ICD Patient Entry</h1>
-      <div class="searchish">Elegant patient encoding workspace with live ICD suggestions</div>
-    </div>
-
-    <div class="filters">
-      <div class="chip">Live encoding</div>
-      <div class="chip">WHO ICD-10 2019</div>
-      <div class="chip">Singapore API</div>
-    </div>
-
-    <section class="card" style="margin-bottom:16px;">
-      <div class="card-head">
-        <div>
-          <h2 class="card-title">Summary</h2>
-          <div class="card-sub">Same workflow as before — refined into a cleaner, more elegant interface.</div>
-        </div>
-        <span id="apiStatus" class="status-pill status-warning">Connecting to ICD API…</span>
+  <div class="app">
+    <main class="content">
+      <div class="topbar">
+        <h1 class="page-title">ICD Patient Entry</h1>
+        <div class="searchish">ICD patient entry and export workspace</div>
       </div>
 
-      <div class="kpis">
-        <div class="kpi">
-          <div class="kpi-label">Active Records</div>
-          <div class="kpi-value" id="topDischargeCount">0</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Hospital</div>
-          <div class="kpi-value" style="font-size:18px;">The Doctors' Hospital</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Region / Chapter</div>
-          <div class="kpi-value" style="font-size:18px;">VII-7 · Negros Island</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Dataset</div>
-          <div class="kpi-value" style="font-size:18px;">WHO ICD-10</div>
+      <div class="filters">
+        <div class="chip">
+          <a href="https://icd.who.int/browse10/2019/en" target="_blank" rel="noopener noreferrer">
+            WHO ICD-10 2019
+          </a>
         </div>
       </div>
 
-      <div class="controls">
-        <div class="control-box">
-          <label>Month / Year</label>
-          <div class="control-value" id="monthYearLabel">—</div>
-        </div>
-        <div class="control-box">
-          <label>No. of Discharges</label>
-          <div class="control-value" id="dischargesLabel">0</div>
-        </div>
-        <div class="control-box">
-          <label>Status</label>
-          <div class="control-value">Ready for encoding</div>
-        </div>
+      <div class="grid">
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">Summary</h2>
+            </div>
+            <span id="apiStatus" class="status-pill status-ready">ICD API ready</span>
+          </div>
+
+          <div class="kpis">
+            <div class="kpi">
+              <div class="kpi-label">Active Records</div>
+              <div class="kpi-value" id="topDischargeCount">0</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Hospital</div>
+              <div class="kpi-value" style="font-size:18px;">The Doctors' Hospital</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Region / Chapter</div>
+              <div class="kpi-value" style="font-size:18px;">VII-7 · Negros Island</div>
+            </div>
+          </div>
+
+          <div class="controls">
+            <div class="control-box">
+              <label for="monthYear">Month / Year</label>
+              <input type="month" id="monthYear" />
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button type="button" class="btn-dark" onclick="addRow()">Add Patient</button>
+            <button type="button" class="btn-blue" onclick="downloadExcel()">Download Excel</button>
+            <button type="button" class="btn-light" onclick="focusLastRow()">Go to Last Row</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h3 class="card-title">How it works</h3>
+            </div>
+          </div>
+          <div class="mini-table">
+            <table>
+              <thead>
+                <tr><th>Step</th><th>Action</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>1</td><td>Type full name and details</td></tr>
+                <tr><td>2</td><td>Enter diagnosis text</td></tr>
+                <tr><td>3</td><td>Dates are validated before export</td></tr>
+                <tr><td>4</td><td>ICD auto-fills from your API</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
 
-      <div class="button-row">
-        <button type="button" class="btn-dark" onclick="addRow()">Add Patient</button>
-        <button type="button" class="btn-blue" onclick="downloadExcel()">Download Excel</button>
-        <button type="button" class="btn-light" onclick="focusLastRow()">Go to Last Row</button>
-      </div>
-    </section>
-
-    <div class="grid">
-      <section class="card">
-        <div class="card-head">
+      <section class="sheet-card">
+        <div class="sheet-header">
           <div>
-            <h3 class="card-title">How it works</h3>
-            <div class="card-sub">Fast entry with editable ICD suggestions</div>
+            <h2 class="sheet-title">Patient Entry Sheet</h2>
           </div>
         </div>
-        <div class="mini-table">
-          <table>
-            <thead>
-              <tr><th>Step</th><th>Action</th></tr>
-            </thead>
+
+        <div class="sheet-wrap">
+          <table class="sheet" id="patientTable">
+            <colgroup>
+              <col class="small-col">
+              <col class="name-col">
+              <col class="initial-col">
+              <col class="type-col">
+              <col class="sex-col">
+              <col class="weight-col">
+              <col class="date-col">
+              <col class="date-col">
+              <col class="date-col">
+              <col class="outcome-col">
+              <col class="diag-col">
+              <col class="icd-col">
+              <col class="diag-col">
+              <col class="icd-col">
+              <col class="diag-col">
+              <col class="icd-col">
+            </colgroup>
             <tbody>
-              <tr><td>1</td><td>Type full name and details</td></tr>
-              <tr><td>2</td><td>Enter diagnosis text</td></tr>
-              <tr><td>3</td><td>ICD auto-fills from your API</td></tr>
-              <tr><td>4</td><td>Adjust manually if needed</td></tr>
+              <tr class="green-head">
+                <td>Number</td>
+                <td>Full Name</td>
+                <td>Patient Initial</td>
+                <td>Type of Patient (OLD/NEW)</td>
+                <td>Sex (M/F)</td>
+                <td>Weight (KG)</td>
+                <td>Date of Birth (mm/dd/yyyy)</td>
+                <td>Date Admitted (mm/dd/yyyy)</td>
+                <td>Date Discharged (mm/dd/yyyy)</td>
+                <td>Outcome (Discharged/DIED)</td>
+                <td>Primary Diagnosis</td>
+                <td>ICD No.</td>
+                <td>Secondary Diagnosis</td>
+                <td>ICD No.</td>
+                <td>Tertiary Diagnosis</td>
+                <td>ICD No.</td>
+              </tr>
             </tbody>
           </table>
         </div>
-      </section>
 
-      <section class="card">
-        <div class="card-head">
-          <div>
-            <h3 class="card-title">Validation</h3>
-            <div class="card-sub">Required fields turn red if incomplete</div>
-          </div>
-        </div>
-        <div class="mini-table">
-          <table>
-            <thead>
-              <tr><th>Field</th><th>Rule</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>Type / Sex / Outcome</td><td>Must be selected</td></tr>
-              <tr><td>Full Name</td><td>Last name, First name</td></tr>
-              <tr><td>Dates</td><td>Chronology checked</td></tr>
-              <tr><td>ICD</td><td>Can be auto-filled or typed</td></tr>
-            </tbody>
-          </table>
+        <div class="hint">
+          Patient Initial format stays the same. Example: <strong>de los reyes, lucho → DL</strong>.
+          Dates are checked before export, and invalid date order is highlighted immediately.
         </div>
       </section>
-    </div>
-
-    <section class="sheet-card">
-      <div class="sheet-header">
-        <div>
-          <h2 class="sheet-title">Patient Entry Sheet</h2>
-          <div class="sheet-subtitle">Modern design, same patient entry behavior and Excel output.</div>
-        </div>
-      </div>
-
-      <div class="sheet-wrap">
-        <table class="sheet" id="patientTable">
-          <colgroup>
-            <col class="small-col">
-            <col class="name-col">
-            <col class="initial-col">
-            <col class="type-col">
-            <col class="sex-col">
-            <col class="weight-col">
-            <col class="date-col">
-            <col class="date-col">
-            <col class="date-col">
-            <col class="outcome-col">
-            <col class="diag-col">
-            <col class="icd-col">
-            <col class="diag-col">
-            <col class="icd-col">
-            <col class="diag-col">
-            <col class="icd-col">
-          </colgroup>
-          <tbody>
-            <tr class="green-head">
-              <td>Number</td>
-              <td>Full Name</td>
-              <td>Patient Initial</td>
-              <td>Type of Patient (OLD/NEW)</td>
-              <td>Sex (M/F)</td>
-              <td>Weight (KG)</td>
-              <td>Date of Birth (mm/dd/yyyy)</td>
-              <td>Date Admitted (mm/dd/yyyy)</td>
-              <td>Date Discharged (mm/dd/yyyy)</td>
-              <td>Outcome (Discharged/DIED)</td>
-              <td>Primary Diagnosis</td>
-              <td>ICD No.</td>
-              <td>Secondary Diagnosis</td>
-              <td>ICD No.</td>
-              <td>Tertiary Diagnosis</td>
-              <td>ICD No.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="hint">
-        Patient Initial format stays the same. Example: <strong>de los reyes, lucho → DL</strong>. ICD suggestions come from your Render backend, and users can still manually type ICD codes.
-      </div>
-    </section>
-  </main>
+    </main>
+  </div>
 
   <script>
     let count = 0;
     const DEFAULT_API_URL = "https://ai-icd-repo.onrender.com/predict";
+    const API_STORAGE_KEY = "icd_api_url";
     const particles = ["de", "del", "de la", "de las", "de los", "dela", "da", "dos", "das", "di", "van", "von", "bin", "ibn", "la", "las", "los"];
 
     function runSelfChecks() {
@@ -556,7 +575,8 @@
     }
 
     function getApiUrl() {
-      return DEFAULT_API_URL;
+      const saved = localStorage.getItem(API_STORAGE_KEY);
+      return (saved || DEFAULT_API_URL).trim();
     }
 
     function setApiStatus(ready, message) {
@@ -566,7 +586,16 @@
     }
 
     function initializeApiUrl() {
+      localStorage.setItem(API_STORAGE_KEY, DEFAULT_API_URL);
       setApiStatus(true, "ICD API ready");
+    }
+
+    function initializeMonthYear() {
+      const input = document.getElementById("monthYear");
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      input.value = `${year}-${month}`;
     }
 
     function createSelect(options, placeholder) {
@@ -577,20 +606,6 @@
 
     function updateTopDischargeCount(value) {
       document.getElementById("topDischargeCount").textContent = value;
-      document.getElementById("dischargesLabel").textContent = value;
-    }
-
-    function updateMonthLabel() {
-      const now = new Date();
-      const monthText = now.toLocaleString("en-US", { month: "long", year: "numeric" });
-      document.getElementById("monthYearLabel").textContent = monthText;
-    }
-
-    function rowHasMeaningfulData(row) {
-      return Array.from(row.querySelectorAll("input, select")).some(el => {
-        if (el.tagName === "SELECT") return !!el.value;
-        return typeof el.value === "string" ? el.value.trim().length > 0 : !!el.value;
-      });
     }
 
     function updateDischarges() {
@@ -602,12 +617,62 @@
       updateTopDischargeCount(dischargeCount);
     }
 
+    function clearDateErrors(row) {
+      row.querySelector(".dob")?.classList.remove("error");
+      row.querySelector(".admitted")?.classList.remove("error");
+      row.querySelector(".discharged")?.classList.remove("error");
+    }
+
+    function validateDatesInRow(row) {
+      clearDateErrors(row);
+
+      const dobInput = row.querySelector(".dob");
+      const admittedInput = row.querySelector(".admitted");
+      const dischargedInput = row.querySelector(".discharged");
+
+      const dob = dobInput?.value;
+      const admitted = admittedInput?.value;
+      const discharged = dischargedInput?.value;
+
+      let valid = true;
+
+      if (dob && admitted && new Date(dob) > new Date(admitted)) {
+        dobInput.classList.add("error");
+        admittedInput.classList.add("error");
+        valid = false;
+      }
+
+      if (admitted && discharged && new Date(admitted) > new Date(discharged)) {
+        admittedInput.classList.add("error");
+        dischargedInput.classList.add("error");
+        valid = false;
+      }
+
+      return valid;
+    }
+
+    function handleDateChange(input) {
+      input.classList.remove("error");
+      const row = input.closest("tr");
+      validateDatesInRow(row);
+      updateDischarges();
+      maybeAddNextRow(row);
+    }
+
     function updateInitial(input) {
       const row = input.closest("tr");
       row.querySelector(".initial-cell").textContent = getInitial(input.value);
       input.classList.remove("error");
       updateDischarges();
       maybeAddNextRow(row);
+    }
+
+    function rowHasMeaningfulData(row) {
+      return Array.from(row.querySelectorAll("input, select")).some(el => {
+        if (el.id === "monthYear") return false;
+        if (el.tagName === "SELECT") return !!el.value;
+        return typeof el.value === "string" ? el.value.trim().length > 0 : !!el.value;
+      });
     }
 
     function addRow() {
@@ -623,9 +688,9 @@
         <td>${createSelect(["OLD", "NEW"], "Select")}</td>
         <td>${createSelect(["M", "F"], "Select")}</td>
         <td><input type="number" class="required-field" min="0" step="0.1" oninput="this.classList.remove('error'); updateDischarges(); maybeAddNextRow(this.closest('tr'))" /></td>
-        <td><input type="date" class="required-field dob" onchange="this.classList.remove('error'); updateDischarges(); maybeAddNextRow(this.closest('tr'))" /></td>
-        <td><input type="date" class="required-field admitted" onchange="this.classList.remove('error'); updateDischarges(); maybeAddNextRow(this.closest('tr'))" /></td>
-        <td><input type="date" class="required-field discharged" onchange="this.classList.remove('error'); updateDischarges(); maybeAddNextRow(this.closest('tr'))" /></td>
+        <td><input type="date" class="required-field dob" onchange="handleDateChange(this)" /></td>
+        <td><input type="date" class="required-field admitted" onchange="handleDateChange(this)" /></td>
+        <td><input type="date" class="required-field discharged" onchange="handleDateChange(this)" /></td>
         <td>${createSelect(["Discharged", "DIED"], "Select")}</td>
         <td><input type="text" placeholder="Type diagnosis" oninput="debouncedFetchICD(this, 'primary'); maybeAddNextRow(this.closest('tr'))" /></td>
         <td><input type="text" class="primary-icd" placeholder="Suggested or type ICD" oninput="this.dataset.autoFilled='false'" /></td>
@@ -728,19 +793,7 @@
         valid = false;
       }
 
-      const dob = row.querySelector(".dob").value;
-      const admitted = row.querySelector(".admitted").value;
-      const discharged = row.querySelector(".discharged").value;
-
-      if (dob && admitted && new Date(dob) > new Date(admitted)) {
-        row.querySelector(".dob").classList.add("error");
-        row.querySelector(".admitted").classList.add("error");
-        valid = false;
-      }
-
-      if (admitted && discharged && new Date(admitted) > new Date(discharged)) {
-        row.querySelector(".admitted").classList.add("error");
-        row.querySelector(".discharged").classList.add("error");
+      if (!validateDatesInRow(row)) {
         valid = false;
       }
 
@@ -755,7 +808,7 @@
         if (!rowHasMeaningfulData(row)) continue;
 
         if (!validateRow(row)) {
-          alert("Please complete all required fields correctly. Full Name must be in 'Last name, First name' format.");
+          alert("Please complete all required fields correctly. Check the dates and use 'Last name, First name' format.");
           return null;
         }
 
@@ -786,12 +839,13 @@
       const exportRows = buildExportData();
       if (!exportRows) return;
 
-      const now = new Date();
-      const monthText = now.toLocaleString("en-US", { month: "short", year: "2-digit" });
-      const dischargeCount = document.getElementById("dischargesLabel").textContent || 0;
+      const monthValue = document.getElementById("monthYear").value;
+      const monthText = monthValue
+        ? new Date(monthValue + "-01").toLocaleString("en-US", { month: "short", year: "2-digit" })
+        : "";
 
       const headerRows = [
-        ["", "The Doctors' Hospital", "VII-7", "", "", "", "Chapter", "Negros Island", "", "Month/Yr", monthText, "", "", "No. of Discharges", dischargeCount],
+        ["Month/Yr", monthText],
         [],
         ["Number", "Patient Initial", "Type of Patient (OLD/NEW)", "Sex (M/F)", "Weight (KG)", "Date of Birth (mm/dd/yyyy)", "Date Admitted (mm/dd/yyyy)", "Date Discharged (mm/dd/yyyy)", "Outcome (Discharged/DIED)", "Primary Diagnosis", "ICD No.", "Secondary Diagnosis", "ICD No.", "Tertiary Diagnosis", "ICD No."]
       ];
@@ -816,9 +870,9 @@
 
       const ws = XLSX.utils.aoa_to_sheet([...headerRows, ...bodyRows]);
       ws["!cols"] = [
-        { wch: 8 }, { wch: 12 }, { wch: 20 }, { wch: 10 }, { wch: 12 },
-        { wch: 16 }, { wch: 16 }, { wch: 17 }, { wch: 22 }, { wch: 28 },
-        { wch: 12 }, { wch: 28 }, { wch: 12 }, { wch: 28 }, { wch: 12 }
+        { wch: 10 }, { wch: 16 }, { wch: 24 }, { wch: 12 }, { wch: 14 },
+        { wch: 18 }, { wch: 18 }, { wch: 19 }, { wch: 24 }, { wch: 34 },
+        { wch: 14 }, { wch: 34 }, { wch: 14 }, { wch: 34 }, { wch: 14 }
       ];
 
       const wb = XLSX.utils.book_new();
@@ -838,7 +892,7 @@
     }
 
     initializeApiUrl();
-    updateMonthLabel();
+    initializeMonthYear();
     addRow();
     runSelfChecks();
   </script>
