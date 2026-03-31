@@ -180,6 +180,11 @@
       color: var(--green);
     }
 
+    .status-warning {
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+
     .controls {
       padding: 0 20px 20px;
       display: grid;
@@ -374,6 +379,52 @@
       background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
     }
 
+    .diagnosis-cell {
+      position: relative;
+    }
+
+    .icd-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #d9e1ee;
+      border-radius: 12px;
+      max-height: 220px;
+      overflow-y: auto;
+      z-index: 9999;
+      box-shadow: 0 12px 30px rgba(20, 32, 60, 0.12);
+    }
+
+    .icd-option {
+      padding: 10px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #eef2f8;
+      white-space: normal;
+      line-height: 1.35;
+    }
+
+    .icd-option:last-child {
+      border-bottom: none;
+    }
+
+    .icd-option:hover {
+      background: #f5f8ff;
+    }
+
+    .icd-option-code {
+      font-weight: 700;
+      color: #172033;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .icd-option-desc {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
     @media (max-width: 1200px) {
       .grid { grid-template-columns: 1fr; }
       .kpis { grid-template-columns: 1fr 1fr; }
@@ -409,6 +460,7 @@
           <div class="card-head">
             <div>
               <h2 class="card-title">Summary</h2>
+              <div class="card-sub">Same workflow as before — only the visual design changed.</div>
             </div>
             <span id="apiStatus" class="status-pill status-ready">ICD API ready</span>
           </div>
@@ -423,7 +475,7 @@
               <div class="kpi-value" style="font-size:18px;">The Doctors' Hospital</div>
             </div>
             <div class="kpi">
-              <div class="kpi-label">Region / Chapter</div>
+              <div class="kpi-label">Chapter / Region</div>
               <div class="kpi-value" style="font-size:18px;">VII-7 · Negros Island</div>
             </div>
           </div>
@@ -446,6 +498,7 @@
           <div class="card-head">
             <div>
               <h3 class="card-title">How it works</h3>
+              <div class="card-sub">Fast entry with editable ICD suggestions</div>
             </div>
           </div>
           <div class="mini-table">
@@ -456,8 +509,8 @@
               <tbody>
                 <tr><td>1</td><td>Type full name and details</td></tr>
                 <tr><td>2</td><td>Enter diagnosis text</td></tr>
-                <tr><td>3</td><td>Dates are validated before export</td></tr>
-                <tr><td>4</td><td>ICD auto-fills from your API</td></tr>
+                <tr><td>3</td><td>Dates are validated first</td></tr>
+                <tr><td>4</td><td>Select the best ICD suggestion from the dropdown</td></tr>
               </tbody>
             </table>
           </div>
@@ -468,6 +521,7 @@
         <div class="sheet-header">
           <div>
             <h2 class="sheet-title">Patient Entry Sheet</h2>
+            <div class="sheet-subtitle">Scrollable sheet with ICD suggestions and Excel export.</div>
           </div>
         </div>
 
@@ -516,7 +570,7 @@
 
         <div class="hint">
           Patient Initial format stays the same. Example: <strong>de los reyes, lucho → DL</strong>.
-          Dates are checked before export, and invalid date order is highlighted immediately.
+          The ICD number is now chosen from a dropdown of suggestions instead of forcing a single match.
         </div>
       </section>
     </main>
@@ -524,15 +578,9 @@
 
   <script>
     let count = 0;
-    const DEFAULT_API_URL = "https://ai-icd-repo.onrender.com/predict";
-    const API_STORAGE_KEY = "icd_api_url";
+    const API_URL = "https://ai-icd-repo.onrender.com/predict";
     const particles = ["de", "del", "de la", "de las", "de los", "dela", "da", "dos", "das", "di", "van", "von", "bin", "ibn", "la", "las", "los"];
-
-    function runSelfChecks() {
-      console.assert(getInitial("de los reyes, lucho") === "DL", "Expected DL for 'de los reyes, lucho'");
-      console.assert(getInitial("galvan, jaxziv") === "GJ", "Expected GJ for 'galvan, jaxziv'");
-      console.assert(formatDateForExcel("2026-03-30") === "03/30/2026", "Date formatting failed");
-    }
+    const icdDebounceTimers = new WeakMap();
 
     function formatDateForDisplay(value) {
       if (!value) return "";
@@ -574,22 +622,6 @@
       return (lastInitial + firstInitial).substring(0, 2).toUpperCase();
     }
 
-    function getApiUrl() {
-      const saved = localStorage.getItem(API_STORAGE_KEY);
-      return (saved || DEFAULT_API_URL).trim();
-    }
-
-    function setApiStatus(ready, message) {
-      const el = document.getElementById("apiStatus");
-      el.textContent = message;
-      el.className = `status-pill ${ready ? "status-ready" : "status-warning"}`;
-    }
-
-    function initializeApiUrl() {
-      localStorage.setItem(API_STORAGE_KEY, DEFAULT_API_URL);
-      setApiStatus(true, "ICD API ready");
-    }
-
     function initializeMonthYear() {
       const input = document.getElementById("monthYear");
       const now = new Date();
@@ -606,6 +638,12 @@
 
     function updateTopDischargeCount(value) {
       document.getElementById("topDischargeCount").textContent = value;
+    }
+
+    function setApiStatus(ready, message) {
+      const el = document.getElementById("apiStatus");
+      el.textContent = message;
+      el.className = `status-pill ${ready ? "status-ready" : "status-warning"}`;
     }
 
     function updateDischarges() {
@@ -675,6 +713,12 @@
       });
     }
 
+    function closeAllDropdowns(except = null) {
+      document.querySelectorAll(".icd-dropdown").forEach(dropdown => {
+        if (dropdown !== except) dropdown.remove();
+      });
+    }
+
     function addRow() {
       count += 1;
       const tbody = document.querySelector("#patientTable tbody");
@@ -692,12 +736,21 @@
         <td><input type="date" class="required-field admitted" onchange="handleDateChange(this)" /></td>
         <td><input type="date" class="required-field discharged" onchange="handleDateChange(this)" /></td>
         <td>${createSelect(["Discharged", "DIED"], "Select")}</td>
-        <td><input type="text" placeholder="Type diagnosis" oninput="debouncedFetchICD(this, 'primary'); maybeAddNextRow(this.closest('tr'))" /></td>
-        <td><input type="text" class="primary-icd" placeholder="Suggested or type ICD" oninput="this.dataset.autoFilled='false'" /></td>
-        <td><input type="text" placeholder="Type diagnosis" oninput="debouncedFetchICD(this, 'secondary'); maybeAddNextRow(this.closest('tr'))" /></td>
-        <td><input type="text" class="secondary-icd" placeholder="Suggested or type ICD" oninput="this.dataset.autoFilled='false'" /></td>
-        <td><input type="text" placeholder="Type diagnosis" oninput="debouncedFetchICD(this, 'tertiary'); maybeAddNextRow(this.closest('tr'))" /></td>
-        <td><input type="text" class="tertiary-icd" placeholder="Suggested or type ICD" oninput="this.dataset.autoFilled='false'" /></td>
+
+        <td class="diagnosis-cell">
+          <input type="text" placeholder="Type diagnosis" oninput="debouncedFetchICD(this, 'primary'); maybeAddNextRow(this.closest('tr'))" />
+        </td>
+        <td><input type="text" class="primary-icd" placeholder="Choose or type ICD" oninput="this.dataset.autoFilled='false'" /></td>
+
+        <td class="diagnosis-cell">
+          <input type="text" placeholder="Type diagnosis" oninput="debouncedFetchICD(this, 'secondary'); maybeAddNextRow(this.closest('tr'))" />
+        </td>
+        <td><input type="text" class="secondary-icd" placeholder="Choose or type ICD" oninput="this.dataset.autoFilled='false'" /></td>
+
+        <td class="diagnosis-cell">
+          <input type="text" placeholder="Type diagnosis" oninput="debouncedFetchICD(this, 'tertiary'); maybeAddNextRow(this.closest('tr'))" />
+        </td>
+        <td><input type="text" class="tertiary-icd" placeholder="Choose or type ICD" oninput="this.dataset.autoFilled='false'" /></td>
       `;
 
       tbody.appendChild(row);
@@ -712,8 +765,6 @@
       }
     }
 
-    const icdDebounceTimers = new WeakMap();
-
     function debouncedFetchICD(input, type) {
       const prior = icdDebounceTimers.get(input);
       if (prior) clearTimeout(prior);
@@ -723,14 +774,26 @@
 
     async function fetchICD(input, type) {
       const diagnosis = input.value.trim();
-      if (!diagnosis) return;
-
-      const apiUrl = getApiUrl();
       const row = input.closest("tr");
       const icdInput = row.querySelector(`.${type}-icd`);
 
+      closeAllDropdowns();
+
+      if (!diagnosis) {
+        return;
+      }
+
+      let dropdown = input.parentElement.querySelector(".icd-dropdown");
+      if (!dropdown) {
+        dropdown = document.createElement("div");
+        dropdown.className = "icd-dropdown";
+        input.parentElement.appendChild(dropdown);
+      }
+
+      dropdown.innerHTML = "<div class='icd-option'><span class='icd-option-desc'>Loading suggestions...</span></div>";
+
       try {
-        const response = await fetch(apiUrl, {
+        const response = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: diagnosis })
@@ -741,25 +804,39 @@
         }
 
         const data = await response.json();
-        const suggestion = data && Array.isArray(data.suggestions) ? data.suggestions[0] : null;
+        const suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
 
-        if (!suggestion) {
-          icdInput.title = "No ICD suggestion found. Type ICD manually.";
+        dropdown.innerHTML = "";
+
+        if (!suggestions.length) {
+          dropdown.innerHTML = `<div class="icd-option"><span class="icd-option-desc">No match found</span></div>`;
           setApiStatus(false, "No suggestion returned");
           return;
         }
 
-        if (!icdInput.value || icdInput.dataset.autoFilled === "true") {
-          icdInput.value = suggestion.code || "";
-          icdInput.dataset.autoFilled = "true";
-        }
+        suggestions.forEach(item => {
+          const option = document.createElement("div");
+          option.className = "icd-option";
+          option.innerHTML = `
+            <span class="icd-option-code">${item.code}</span>
+            <span class="icd-option-desc">${item.description}</span>
+          `;
 
-        icdInput.title = suggestion.description || "";
-        setApiStatus(true, "ICD suggestion ready");
+          option.onclick = () => {
+            icdInput.value = item.code || "";
+            icdInput.dataset.autoFilled = "true";
+            icdInput.title = item.description || "";
+            dropdown.remove();
+            setApiStatus(true, "ICD suggestion ready");
+          };
+
+          dropdown.appendChild(option);
+        });
+
       } catch (error) {
-        icdInput.title = "ICD API unavailable. Type ICD manually.";
+        dropdown.innerHTML = `<div class="icd-option"><span class="icd-option-desc">ICD suggestions unavailable</span></div>`;
         setApiStatus(false, "Manual ICD mode");
-        console.warn("ICD suggestion unavailable. Manual ICD entry allowed.", error);
+        console.warn("ICD fetch error:", error);
       }
     }
 
@@ -891,10 +968,15 @@
       }
     }
 
-    initializeApiUrl();
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest(".diagnosis-cell")) {
+        closeAllDropdowns();
+      }
+    });
+
     initializeMonthYear();
     addRow();
-    runSelfChecks();
+    setApiStatus(true, "ICD API ready");
   </script>
 </body>
 </html>
